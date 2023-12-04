@@ -1,0 +1,10 @@
+
+.board-row {
+  height: 40px;
+}
+.square {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 1px solid red;
+}
