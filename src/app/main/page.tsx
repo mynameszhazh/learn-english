@@ -1,6 +1,10 @@
 "use client";
-import Test from "./test";
+
+import Practice from "./practice";
+
+// import Test from "./test";
 
 export default function Main() {
-  return <Test />;
+  // return <Test />;
+  return <Practice />;
 }
