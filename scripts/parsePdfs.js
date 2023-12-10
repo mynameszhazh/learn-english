@@ -1,49 +1,102 @@
-const fs = require('fs')
-const pdf = require('pdf-parse')
+import { it, expect, describe } from "vitest";
+import { parse, parseEnglishAndSoundMark } from "./parsePdf";
 
-main()
+it("happy path", () => {
+  const pdfText =
+    " \n" +
+    "你好，我是星荣。 \n" +
+    "中文 英文 K.K.音标 \n" +
+    "我 \n" +
+    "I /aɪ/ \n" +
+    "\n" +
+    "3 \n" +
+    "喜欢 \n" +
+    "like /laɪk/ \n";
 
-function main() {
-  let dataBuffer = fs.readFileSync('./1.pdf');
+  expect(parse(pdfText)).toEqual([
+    {
+      chinese: "我",
+      english: "I",
+      soundMark: "/aɪ/",
+    },
+    {
+      chinese: "喜欢",
+      english: "like",
+      soundMark: "/laɪk/",
+    },
+  ]);
+});
 
-  pdf(dataBuffer).then(function (data) {
+it("complex", () => {
+  const pdfText =
+    " \n" +
+    "你好，我是星荣。 \n" +
+    "中文 英文 K.K.音标 \n" +
+    "我 \n" +
+    "I /aɪ/ \n" +
+    "\n" +
+    "3 \n" +
+    "我需要告诉你重要的某些事情 \n" +
+    "I need to tell you something important \n" +
+    "/ai/ /nid/ /te/ \n" +
+    "喜欢 \n" +
+    "like /laɪk/ \n";
 
-    // number of pages
-    // console.log(data.numpages);
-    // number of rendered pages
-    // console.log(data.numrender);
-    // PDF info
-    // console.log(data.info);
-    // PDF metadata
-    // console.log(data.metadata);
-    // PDF.js version
-    // check https://mozilla.github.io/pdf.js/getting_started/
-    // console.log(data.version);
-    // PDF text
-    // console.log((data.text.split('\n')))
-    const ret = parse(data.text)
-    // let a = ret.reverse()
+  expect(parse(pdfText)).toEqual([
+    {
+      chinese: "我",
+      english: "I",
+      soundMark: "/aɪ/",
+    },
+    {
+      chinese: "我需要告诉你重要的某些事情",
+      english: "I need to tell you something important",
+      soundMark: "/ai/ /nid/ /te/",
+    },
+    {
+      chinese: "喜欢",
+      english: "like",
+      soundMark: "/laɪk/",
+    },
+  ]);
+});
+
+it("中文里面包含符号", () => {
+  const pdfText =
+    " \n" +
+    "你好，我是星荣。 \n" +
+    "中文 英文 K.K.音标 \n" +
+    "我 \n" +
+    "I /aɪ/ \n" +
+    "它；这件事情 \n" +
+    "it /it/ \n";
+
+  expect(parse(pdfText)).toEqual([
+    {
+      chinese: "我",
+      english: "I",
+      soundMark: "/aɪ/",
+    },
+    {
+      chinese: "它；这件事情",
+      english: "it",
+      soundMark: "/it/",
+    },
+  ]);
+});
+
+describe("parse english and soundmark", () => {
+  it("parse simply ", () => {
+    expect(parseEnglishAndSoundMark("like /laɪk/")).toEqual({
+      english: "like",
+      soundMark: "/laɪk/",
+    });
   });
-}
 
-const START_STRING = '中文 英文 K.K.音标'
-
-function parse(text) {
-  let textArr = text.split('\n').map(item => item.trim())
-  const startIndex = textArr.findIndex(item => item === START_STRING)
-  const ret = []
-  textArr = textArr.slice(startIndex + 1).filter(i => i && !/\d/.test(Number(i)))
-  console.log("textArr:", textArr)
-  // console.log("textArr:", textArr.reverse())
-  // for (let i = 0; i < textArr.length; i++) {
-  //   const chinese = textArr[i];
-  //   const [english, soundmark] = textArr[i + 1].split(' ')
-  //   ret.push({
-  //     chinese,
-  //     english,
-  //     soundmark
-  //   })
-  //   i++
-  // }
-  // return ret
-}
+  it("parse multi group", () => {
+    expect(parseEnglishAndSoundMark("like me /laɪk/ /me/")).toEqual({
+      english: "like me",
+      soundMark: "/laɪk/ /me/",
+    });
+  });
+});
