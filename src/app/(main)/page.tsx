@@ -6,42 +6,28 @@ import { useEffect, useRef, useState } from "react";
 
 const failedCountTotal = 3;
 
-const courseData = [
-  {
-    name: "第一堂课",
-    statements: [
-      {
-        chinese: "现在",
-        english: "now",
-        soundmark: "/nav/",
-      },
-      {
-        chinese: "爱",
-        english: "love",
-        soundmark: "/ai/",
-      },
-    ],
-  },
-];
-
 export default function Main() {
-  const [currentMode, setCurrentMode] = useState<"question" | "anwser">(
-    "question"
-  );
-  const [questionWord, setQuestionWord] = useState("");
-  const [answerWord, setAnswerWord] = useState("");
-  const [answerSoundmark, setAnswerSoundmark] = useState("");
+  const [currentMode, setCurrentMode] = useState<
+    "loading" | "question" | "anwser"
+  >("loading");
+
+  let questionWord = "";
+  let answerWord = "";
+  let answerSoundmark = "";
 
   const failedCount = useRef(0);
   const statementIndex = useRef(0);
   const currentCourse = useRef<any>({});
 
   function updateWord() {
+    if (!currentCourse.current.statements) return;
+
     const { chinese, english, soundmark } =
       currentCourse.current.statements[statementIndex.current];
-    setQuestionWord(chinese);
-    setAnswerWord(english);
-    setAnswerSoundmark(soundmark);
+
+    questionWord = chinese;
+    answerWord = english;
+    answerSoundmark = soundmark;
   }
 
   useEffect(() => {
@@ -49,7 +35,7 @@ export default function Main() {
       const res = await fetch("http://localhost:3000/api/main");
       const data = await res.json();
       currentCourse.current.statements = data.data;
-      updateWord();
+      setCurrentMode("question");
     }
     fetchData();
   }, []);
@@ -57,7 +43,6 @@ export default function Main() {
   function handleToNextStatement() {
     statementIndex.current++;
     setCurrentMode("question");
-    updateWord();
   }
 
   function checkAnswer(value: string) {
@@ -76,17 +61,19 @@ export default function Main() {
     return value === answerWord;
   }
 
-  return (
-    <div>
-      {currentMode === "question" ? (
-        <Question word={questionWord} onCheckAnswer={checkAnswer} />
-      ) : (
-        <Answer
-          word={answerWord}
-          soundmark={answerSoundmark}
-          onToNextStatement={handleToNextStatement}
-        />
-      )}
-    </div>
-  );
+  updateWord();
+
+  const viewMap = {
+    loading: <div>loging...</div>,
+    question: <Question word={questionWord} onCheckAnswer={checkAnswer} />,
+    anwser: (
+      <Answer
+        word={answerWord}
+        soundmark={answerSoundmark}
+        onToNextStatement={handleToNextStatement}
+      />
+    ),
+  };
+
+  return <div>{viewMap[currentMode]}</div>;
 }
