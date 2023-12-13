@@ -2,46 +2,25 @@
 
 import Answer from "@/components/Answer";
 import Question from "@/components/Question";
-import { useEffect, useRef, useState } from "react";
-
-const failedCountTotal = 3;
+import { useEffect, useState } from "react";
+import { useCounter, useFailedCount } from "../../store/course";
 
 export default function Main() {
-  const [currentMode, setCurrentMode] = useState<
-    "loading" | "question" | "anwser"
-  >("loading");
+  const [currentMode, setCurrentMode] = useState<"question" | "anwser">(
+    "question"
+  );
 
-  let questionWord = "";
-  let answerWord = "";
-  let answerSoundmark = "";
+  const { fetchCourse, getCurrentStatement, toNextStatement, checkCorrect } =
+    useCounter();
 
-  const failedCount = useRef(0);
-  const statementIndex = useRef(0);
-  const currentCourse = useRef<any>({});
-
-  function updateWord() {
-    if (!currentCourse.current.statements) return;
-
-    const { chinese, english, soundmark } =
-      currentCourse.current.statements[statementIndex.current];
-
-    questionWord = chinese;
-    answerWord = english;
-    answerSoundmark = soundmark;
-  }
+  const { increaseFailedCount } = useFailedCount();
 
   useEffect(() => {
-    async function fetchData() {
-      const res = await fetch("http://localhost:3000/api/main");
-      const data = await res.json();
-      currentCourse.current.statements = data.data;
-      setCurrentMode("question");
-    }
-    fetchData();
+    fetchCourse();
   }, []);
 
   function handleToNextStatement() {
-    statementIndex.current++;
+    toNextStatement();
     setCurrentMode("question");
   }
 
@@ -49,27 +28,26 @@ export default function Main() {
     if (checkCorrect(value)) {
       setCurrentMode("anwser");
     } else {
-      failedCount.current++;
-      if (failedCount.current >= failedCountTotal) {
-        setCurrentMode("anwser");
-        failedCount.current = 0;
-      }
+      // increaseFailedCount();
+      setCurrentMode("anwser");
+      // if (failedCount.current >= failedCountTotal) {
+      //   failedCount.current = 0;
+      // }
     }
   }
 
-  function checkCorrect(value: string): boolean {
-    return value === answerWord;
-  }
-
-  updateWord();
-
   const viewMap = {
     loading: <div>loging...</div>,
-    question: <Question word={questionWord} onCheckAnswer={checkAnswer} />,
+    question: (
+      <Question
+        word={getCurrentStatement()?.chinese}
+        onCheckAnswer={checkAnswer}
+      />
+    ),
     anwser: (
       <Answer
-        word={answerWord}
-        soundmark={answerSoundmark}
+        word={getCurrentStatement()?.english}
+        soundmark={getCurrentStatement()?.soundmark}
         onToNextStatement={handleToNextStatement}
       />
     ),
